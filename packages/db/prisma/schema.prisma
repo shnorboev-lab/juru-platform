@@ -1,0 +1,353 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ── Enums ──────────────────────────────────────────────────────────────────
+
+enum Role {
+  EMPLOYEE
+  EVALUATOR
+  HR_ADMIN
+  TEAM_HEAD
+  BU_HEAD
+  MD
+}
+
+enum Grade {
+  E1
+  E2
+  E3
+  E4
+  C1
+  C2
+  C3
+  C4
+  S1
+  S2
+  S3
+  S4
+  SE1
+  SE2
+  SE3
+  SE4
+  SC1
+  SC2
+  SC3
+  SC4
+  PE
+  PE1
+  PE2
+  PE3
+  PC
+  PC1
+  PC2
+  M1
+  M2
+  M3
+  M4
+  SM1
+  SM2
+  SM3
+  SM4
+  D1
+  D2
+  D3
+  MD
+  I
+}
+
+enum SeniorityTier {
+  ENTRY   // E1–E4, C1–C4, S1–S4, I
+  MID     // SE1–SE4, SC1–SC4
+  SENIOR  // PE, PC, M, SM, D, MD
+}
+
+enum CycleType {
+  SEMI_ANNUAL
+  ANNUAL
+}
+
+enum CyclePhase {
+  PREP
+  SELF_APPRAISAL
+  EVALUATION
+  CONSOLIDATION
+  INTERVIEW
+  DONE
+}
+
+enum SubmissionType {
+  SELF
+  EVAL_1
+  EVAL_2
+}
+
+enum SubmissionStatus {
+  DRAFT
+  SUBMITTED
+}
+
+enum PerformanceLabel {
+  EXCEPTIONAL          // >= 4.5
+  EXCEEDS_EXPECTATIONS // >= 3.5
+  MEETS_EXPECTATIONS   // >= 2.5
+  PARTIALLY_MEETS      // >= 1.5
+  BELOW_EXPECTATIONS   // < 1.5
+}
+
+enum SubCriterion {
+  // Project Delivery
+  TIMELINE
+  QUALITY
+  CLIENT_SATISFACTION
+  TEAMWORK
+  COMMERCIAL_SUCCESS
+  // Personal & Professional Development
+  TECHNICAL_SKILLS
+  PEOPLE_SKILLS
+  CONTINUOUS_LEARNING
+  DISCIPLINE
+  RELIABILITY
+}
+
+enum NotificationChannel {
+  EMAIL
+  GCHAT
+  IN_APP
+}
+
+enum NotificationStatus {
+  PENDING
+  SENT
+  FAILED
+}
+
+// ── Core entities ─────────────────────────────────────────────────────────
+
+model BusinessUnit {
+  id        String   @id @default(uuid())
+  name      String   @unique
+  headId    String?
+  createdAt DateTime @default(now())
+
+  head     Employee?      @relation("BUHead", fields: [headId], references: [id])
+  teams    Team[]
+  employees Employee[]    @relation("EmployeeBU")
+  cycles   ReviewCycle[]
+
+  @@map("business_units")
+}
+
+model Team {
+  id        String   @id @default(uuid())
+  name      String
+  buId      String
+  headId    String?
+  createdAt DateTime @default(now())
+
+  bu       BusinessUnit @relation(fields: [buId], references: [id])
+  head     Employee?    @relation("TeamHead", fields: [headId], references: [id])
+  employees Employee[]  @relation("EmployeeTeam")
+
+  @@unique([buId, name])
+  @@map("teams")
+}
+
+model Employee {
+  id             String        @id @default(uuid())
+  juruId         String?       @unique   // e.g. "TA21005" — primary identifier from HR roster
+  fullName       String
+  email          String        @unique
+  position       String?                 // job title from HR roster
+  office         String?                 // London, Tashkent, etc.
+  grade          Grade
+  seniorityTier  SeniorityTier
+  role           Role          @default(EMPLOYEE)
+  teamId         String?
+  buId           String?
+  isActive       Boolean       @default(true)
+  joinedAt       DateTime      @default(now())
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+
+  team          Team?         @relation("EmployeeTeam", fields: [teamId], references: [id])
+  bu            BusinessUnit? @relation("EmployeeBU", fields: [buId], references: [id])
+
+  buHeadOf      BusinessUnit[] @relation("BUHead")
+  teamHeadOf    Team[]         @relation("TeamHead")
+
+  assignmentsAsEmployee   Assignment[] @relation("AssignmentEmployee")
+  assignmentsAsEvaluator1 Assignment[] @relation("AssignmentEvaluator1")
+  assignmentsAsEvaluator2 Assignment[] @relation("AssignmentEvaluator2")
+  submissions             Submission[] @relation("SubmittedBy")
+  results                 Result[]
+  auditLogs               AuditLog[]
+  notifications           Notification[]
+
+  @@map("employees")
+}
+
+model ReviewCycle {
+  id                  String      @id @default(uuid())
+  type                CycleType
+  year                Int
+  label               String      // e.g. "Semi-Annual 2026 — SBU"
+  buId                String
+  phase               CyclePhase  @default(PREP)
+  selfAppraisalStart  DateTime
+  selfAppraisalEnd    DateTime
+  evaluationEnd       DateTime
+  consolidationEnd    DateTime
+  interviewEnd        DateTime
+  resultsReleasedAt   DateTime?
+  createdAt           DateTime    @default(now())
+  updatedAt           DateTime    @updatedAt
+
+  bu          BusinessUnit @relation(fields: [buId], references: [id])
+  assignments Assignment[]
+  submissions Submission[]
+  results     Result[]
+  reports     Report[]
+
+  @@unique([type, year, buId])
+  @@map("review_cycles")
+}
+
+model Assignment {
+  id           String   @id @default(uuid())
+  cycleId      String
+  employeeId   String
+  evaluator1Id String
+  evaluator2Id String
+  weight1      Decimal  @default(0.70) @db.Decimal(4, 2)
+  weight2      Decimal  @default(0.30) @db.Decimal(4, 2)
+  createdAt    DateTime @default(now())
+
+  cycle      ReviewCycle @relation(fields: [cycleId], references: [id])
+  employee   Employee    @relation("AssignmentEmployee",   fields: [employeeId],   references: [id])
+  evaluator1 Employee    @relation("AssignmentEvaluator1", fields: [evaluator1Id], references: [id])
+  evaluator2 Employee    @relation("AssignmentEvaluator2", fields: [evaluator2Id], references: [id])
+
+  @@unique([cycleId, employeeId])
+  @@map("assignments")
+}
+
+model Submission {
+  id          String           @id @default(uuid())
+  cycleId     String
+  employeeId  String
+  submittedBy String
+  type        SubmissionType
+  status      SubmissionStatus @default(DRAFT)
+  comment     String?          @db.Text
+  submittedAt DateTime?
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+
+  cycle    ReviewCycle @relation(fields: [cycleId], references: [id])
+  employee Employee    @relation("SubmittedBy", fields: [submittedBy], references: [id])
+  scores   Score[]
+
+  @@unique([cycleId, employeeId, type])
+  @@map("submissions")
+}
+
+model Score {
+  id           String       @id @default(uuid())
+  submissionId String
+  subCriterion SubCriterion
+  score        Int          // 1–5
+  note         String?      @db.Text
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
+
+  submission Submission @relation(fields: [submissionId], references: [id], onDelete: Cascade)
+
+  @@unique([submissionId, subCriterion])
+  @@map("scores")
+}
+
+model Result {
+  id               String           @id @default(uuid())
+  cycleId          String
+  employeeId       String
+  overallAvg       Decimal          @db.Decimal(4, 2)
+  performanceLabel PerformanceLabel
+  isAtRisk         Boolean          @default(false)
+  isNominated      Boolean          @default(false)
+  belowCount       Int              @default(0)
+  releasedAt       DateTime?
+  interviewNote    String?          @db.Text
+  interviewDoneAt  DateTime?
+  createdAt        DateTime         @default(now())
+  updatedAt        DateTime         @updatedAt
+
+  cycle          ReviewCycle        @relation(fields: [cycleId], references: [id])
+  employee       Employee           @relation(fields: [employeeId], references: [id])
+  subResults     SubCriterionResult[]
+
+  @@unique([cycleId, employeeId])
+  @@map("results")
+}
+
+model SubCriterionResult {
+  id            String       @id @default(uuid())
+  resultId      String
+  subCriterion  SubCriterion
+  scoreE1       Decimal      @db.Decimal(4, 2)
+  scoreE2       Decimal      @db.Decimal(4, 2)
+  weightedScore Decimal      @db.Decimal(4, 2)
+
+  result Result @relation(fields: [resultId], references: [id], onDelete: Cascade)
+
+  @@unique([resultId, subCriterion])
+  @@map("sub_criterion_results")
+}
+
+model Report {
+  id        String   @id @default(uuid())
+  cycleId   String
+  label     String   // "SBU — Semi-Annual 2026"
+  fileKey   String?  // object storage key
+  fileUrl   String?  // signed URL (short-lived)
+  createdAt DateTime @default(now())
+
+  cycle ReviewCycle @relation(fields: [cycleId], references: [id])
+
+  @@map("reports")
+}
+
+model Notification {
+  id         String              @id @default(uuid())
+  employeeId String
+  channel    NotificationChannel
+  event      String              // e.g. "CYCLE_STARTED", "DEADLINE_REMINDER"
+  subject    String
+  body       String              @db.Text
+  status     NotificationStatus  @default(PENDING)
+  sentAt     DateTime?
+  createdAt  DateTime            @default(now())
+
+  employee Employee @relation(fields: [employeeId], references: [id])
+
+  @@map("notifications")
+}
+
+model AuditLog {
+  id         String   @id @default(uuid())
+  actorId    String
+  action     String   // e.g. "SUBMISSION_CREATED", "RESULT_RELEASED"
+  entityType String
+  entityId   String
+  meta       Json?
+  createdAt  DateTime @default(now())
+
+  actor Employee @relation(fields: [actorId], references: [id])
+
+  @@map("audit_logs")
+}

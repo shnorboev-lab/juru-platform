@@ -1,0 +1,34 @@
+@import "tailwindcss";
+
+:root {
+  /* Juru brand */
+  --juru-red:     #C30017;
+  --juru-red-dark:#9c0012;
+  --juru-red-light:#f5e6e9;
+
+  /* Neutrals */
+  --background:   #ffffff;
+  --foreground:   #1a1a1a;
+  --surface:      #f9fafb;
+  --border:       #e5e7eb;
+  --muted:        #6b7280;
+}
+
+/* Suppress dark-mode overrides — Juru uses white backgrounds */
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: 'Segoe UI', Arial, Helvetica, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ── Scrollbar ── */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: #f1f1f1; }
+::-webkit-scrollbar-thumb { background: #d1d5db; border-radius: 3px; }
+
+/* ── Focus ring ── */
+*:focus-visible {
+  outline: 2px solid var(--juru-red);
+  outline-offset: 2px;
+}
