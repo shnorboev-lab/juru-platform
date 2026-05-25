@@ -1,6 +1,7 @@
 import { FastifyInstance } from 'fastify'
 import { prisma, CyclePhase, CycleType } from '@juru/db'
 import { requireAuth, requireRole, getEmployee } from '../lib/auth.js'
+import { notifyMany } from '../services/notify.js'
 import { z } from 'zod'
 
 // Accept both full ISO datetime strings and plain date strings (YYYY-MM-DD)
@@ -62,11 +63,88 @@ export async function cycleRoutes(app: FastifyInstance) {
     return reply.status(201).send(cycle)
   })
 
+  // Preview recipients before advancing phase — HR only
+  app.get('/:id/recipients', { preHandler: requireRole('HR_ADMIN') }, async (req) => {
+    const { id }    = req.params as { id: string }
+    const { phase } = req.query as { phase: string }
+    const assignments = await prisma.assignment.findMany({
+      where: { cycleId: id },
+      include: {
+        employee:   { select: { id: true, fullName: true, email: true, juruId: true, grade: true, team: { select: { name: true } } } },
+        evaluator1: { select: { id: true, fullName: true, email: true, juruId: true, grade: true } },
+        evaluator2: { select: { id: true, fullName: true, email: true, juruId: true, grade: true } },
+      },
+    })
+    if (phase === 'SELF_APPRAISAL') {
+      const seen = new Set<string>()
+      return assignments
+        .map(a => a.employee)
+        .filter(e => { if (seen.has(e.id)) return false; seen.add(e.id); return true })
+    }
+    if (phase === 'EVALUATION') {
+      const seen = new Set<string>()
+      return [...assignments.map(a => a.evaluator1), ...assignments.map(a => a.evaluator2)]
+        .filter(e => { if (!e || seen.has(e.id)) return false; seen.add(e.id); return true })
+    }
+    return []
+  })
+
   // Advance phase manually — HR only
+  // recipientIds: explicit list to notify (from the preview/approve step)
   app.patch('/:id/phase', { preHandler: requireRole('HR_ADMIN') }, async (req) => {
-    const { id }   = req.params as { id: string }
-    const { phase } = req.body as { phase: CyclePhase }
-    return prisma.reviewCycle.update({ where: { id }, data: { phase } })
+    const { id }    = req.params as { id: string }
+    const { phase, recipientIds } = req.body as { phase: CyclePhase; recipientIds?: string[] }
+    const cycle = await prisma.reviewCycle.update({ where: { id }, data: { phase } })
+
+    if (phase === 'SELF_APPRAISAL' && recipientIds?.length) {
+      await notifyMany(recipientIds, {
+        event: 'CYCLE_OPENED', channels: ['EMAIL', 'IN_APP'],
+        subject: `Self-appraisal period open — ${cycle.label}`,
+        body: `The self-appraisal period for <b>${cycle.label}</b> is now open. You will be notified when results are available.`,
+      })
+    }
+
+    if (phase === 'EVALUATION' && recipientIds?.length) {
+      await notifyMany(recipientIds, {
+        event: 'EVAL_ASSIGNED', channels: ['EMAIL', 'IN_APP'],
+        subject: `Evaluation phase open — ${cycle.label}`,
+        body: `The evaluation phase for <b>${cycle.label}</b> is now open. Please log in to complete your assigned evaluations.`,
+      })
+    }
+
+    return cycle
+  })
+
+  // Update cycle dates — HR only
+  app.patch('/:id', { preHandler: requireRole('HR_ADMIN') }, async (req) => {
+    const { id } = req.params as { id: string }
+    const { selfAppraisalStart, selfAppraisalEnd, evaluationEnd, consolidationEnd, interviewEnd, label } =
+      req.body as Record<string, string>
+    return prisma.reviewCycle.update({
+      where: { id },
+      data: {
+        ...(label               ? { label }                                      : {}),
+        ...(selfAppraisalStart  ? { selfAppraisalStart: new Date(selfAppraisalStart) }  : {}),
+        ...(selfAppraisalEnd    ? { selfAppraisalEnd:   new Date(selfAppraisalEnd) }    : {}),
+        ...(evaluationEnd       ? { evaluationEnd:      new Date(evaluationEnd) }       : {}),
+        ...(consolidationEnd    ? { consolidationEnd:   new Date(consolidationEnd) }    : {}),
+        ...(interviewEnd        ? { interviewEnd:       new Date(interviewEnd) }        : {}),
+      },
+    })
+  })
+
+  // Delete cycle — HR only, any phase, full cascade
+  app.delete('/:id', { preHandler: requireRole('HR_ADMIN') }, async (req, reply) => {
+    const { id } = req.params as { id: string }
+    await prisma.reviewCycle.findUniqueOrThrow({ where: { id } })
+    await prisma.$transaction([
+      // Score and SubCriterionResult cascade-delete via FK onDelete: Cascade
+      prisma.submission.deleteMany({ where: { cycleId: id } }),
+      prisma.result.deleteMany({ where: { cycleId: id } }),
+      prisma.assignment.deleteMany({ where: { cycleId: id } }),
+      prisma.reviewCycle.delete({ where: { id } }),
+    ])
+    return reply.send({ ok: true })
   })
 
   // Release results — HR only

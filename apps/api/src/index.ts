@@ -13,12 +13,21 @@ import { submissionRoutes }  from './routes/submissions.js'
 import { resultRoutes }      from './routes/results.js'
 import { reportRoutes }      from './routes/reports.js'
 import { notificationRoutes } from './routes/notifications.js'
+import { checkInRoutes }      from './routes/check-ins.js'
 
 const app = Fastify({ logger: true })
 
 // ── Plugins ────────────────────────────────────────────────────────────────
 await app.register(cors, {
-  origin: process.env.FRONTEND_URL ?? 'http://localhost:3000',
+  origin: (origin, cb) => {
+    const allowed = (process.env.FRONTEND_URL ?? 'http://localhost:3000').split(',')
+    // Allow any localhost port in dev
+    if (!origin || /^http:\/\/localhost:\d+$/.test(origin) || allowed.includes(origin)) {
+      cb(null, true)
+    } else {
+      cb(new Error('Not allowed by CORS'), false)
+    }
+  },
   credentials: true,
 })
 await app.register(cookie)
@@ -39,10 +48,11 @@ await app.register(submissionRoutes,  { prefix: '/api/v1/submissions' })
 await app.register(resultRoutes,      { prefix: '/api/v1/results' })
 await app.register(reportRoutes,      { prefix: '/api/v1/reports' })
 await app.register(notificationRoutes, { prefix: '/api/v1/notifications' })
+await app.register(checkInRoutes,      { prefix: '/api/v1/check-ins' })
 
 // ── Scheduler ──────────────────────────────────────────────────────────────
 startScheduler()
 
 // ── Start ──────────────────────────────────────────────────────────────────
-const port = Number(process.env.API_PORT ?? 3001)
+const port = Number(process.env.PORT ?? process.env.API_PORT ?? 3001)
 await app.listen({ port, host: '0.0.0.0' })

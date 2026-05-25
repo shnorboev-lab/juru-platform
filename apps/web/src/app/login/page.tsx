@@ -4,21 +4,17 @@ import { useRouter } from 'next/navigation'
 import { dashboardPath } from '@/lib/auth'
 
 const DEV_ACCOUNTS = [
-  { email: 'hr@juru.org',       label: 'HR Admin',   role: 'HR_ADMIN',   desc: 'Manage cycles, employees, reports' },
-  { email: 'alice@juru.org',    label: 'Employee',   role: 'EMPLOYEE',   desc: 'Self-appraisal & results (Alice SE1)' },
-  { email: 'bob@juru.org',      label: 'Evaluator',  role: 'EVALUATOR',  desc: 'Score assigned employees (Bob PE)' },
-  { email: 'teamhead@juru.org', label: 'Team Head',  role: 'TEAM_HEAD',  desc: 'Interview notes & team analytics' },
-  { email: 'buhead@juru.org',   label: 'BU Head',    role: 'BU_HEAD',    desc: 'Distribution & nominations (SBU)' },
-  { email: 'md@juru.org',       label: 'MD',         role: 'MD',         desc: 'Cross-BU overview & heatmap' },
+  { email: 'hr@juru.org',            label: 'HR Admin',   role: 'HR_ADMIN',   desc: 'Manage cycles, employees, reports' },
+  { email: 'ta25163@juru.org',       label: 'Employee',   role: 'EMPLOYEE',   desc: 'Aamir Sayeed — self-appraisal & results' },
+  { email: 'ta24084@juru.org',       label: 'Team Head',  role: 'TEAM_HEAD',  desc: 'Abdumalik Gayubov — team appraisals & interviews' },
+  { email: 'buhead@juru.org',        label: 'BU Head',    role: 'BU_HEAD',    desc: 'Diana Chen — BU analytics & reports' },
 ] as const
 
 const ROLE_COLORS: Record<string, string> = {
   HR_ADMIN:  'bg-purple-100 text-purple-800',
   EMPLOYEE:  'bg-blue-100 text-blue-800',
-  EVALUATOR: 'bg-amber-100 text-amber-800',
   TEAM_HEAD: 'bg-green-100 text-green-800',
   BU_HEAD:   'bg-orange-100 text-orange-800',
-  MD:        'bg-red-100 text-red-800',
 }
 
 export default function LoginPage() {
@@ -66,7 +62,11 @@ export default function LoginPage() {
 
           <div className="px-8 py-8">
             <h1 className="text-xl font-bold text-gray-900 text-center mb-1">Performance Review</h1>
-            <p className="text-sm text-gray-500 text-center mb-6">Choose a role to explore the platform</p>
+            {process.env.NEXT_PUBLIC_ENABLE_DEV_LOGIN === 'true' ? (
+              <p className="text-sm text-gray-500 text-center mb-6">Choose a role to explore the platform</p>
+            ) : (
+              <p className="text-sm text-gray-500 text-center mb-6">Sign in with your Juru Google account below</p>
+            )}
 
             {error && (
               <div className="mb-4 rounded-lg bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-700">
@@ -74,38 +74,40 @@ export default function LoginPage() {
               </div>
             )}
 
-            <div className="space-y-2">
-              {DEV_ACCOUNTS.map((acc) => (
-                <button
-                  key={acc.email}
-                  onClick={() => loginAs(acc.email, acc.role)}
-                  disabled={loading !== null}
-                  className="w-full flex items-center gap-3 px-4 py-3 rounded-xl border border-gray-200 hover:border-[#C30017] hover:bg-red-50 transition-all text-left disabled:opacity-50 group"
-                >
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2">
-                      <span className="font-semibold text-gray-900 text-sm">{acc.label}</span>
-                      <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${ROLE_COLORS[acc.role]}`}>
-                        {acc.email.split('@')[0]}
-                      </span>
+            {process.env.NEXT_PUBLIC_ENABLE_DEV_LOGIN === 'true' && (
+              <div className="space-y-2">
+                {DEV_ACCOUNTS.map((acc) => (
+                  <button
+                    key={acc.email}
+                    onClick={() => loginAs(acc.email, acc.role)}
+                    disabled={loading !== null}
+                    className="w-full flex items-center gap-3 px-4 py-3 rounded-xl border border-gray-200 hover:border-[#C30017] hover:bg-red-50 transition-all text-left disabled:opacity-50 group"
+                  >
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2">
+                        <span className="font-semibold text-gray-900 text-sm">{acc.label}</span>
+                        <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${ROLE_COLORS[acc.role]}`}>
+                          {acc.email.split('@')[0]}
+                        </span>
+                      </div>
+                      <p className="text-xs text-gray-400 mt-0.5 truncate">{acc.desc}</p>
                     </div>
-                    <p className="text-xs text-gray-400 mt-0.5 truncate">{acc.desc}</p>
-                  </div>
-                  <div className="shrink-0 text-gray-300 group-hover:text-[#C30017] transition-colors">
-                    {loading === acc.email ? (
-                      <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
-                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
-                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/>
-                      </svg>
-                    ) : (
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7"/>
-                      </svg>
-                    )}
-                  </div>
-                </button>
-              ))}
-            </div>
+                    <div className="shrink-0 text-gray-300 group-hover:text-[#C30017] transition-colors">
+                      {loading === acc.email ? (
+                        <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
+                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
+                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/>
+                        </svg>
+                      ) : (
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7"/>
+                        </svg>
+                      )}
+                    </div>
+                  </button>
+                ))}
+              </div>
+            )}
 
             <div className="mt-6 pt-5 border-t border-gray-100">
               <button

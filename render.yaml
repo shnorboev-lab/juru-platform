@@ -1,37 +1,77 @@
 services:
+  # ── API ──────────────────────────────────────────────────────────────────────
   - type: web
     name: juru-api
     runtime: node
     rootDir: .
-    buildCommand: npm install -g pnpm && pnpm install --frozen-lockfile && pnpm --filter @juru/db exec prisma generate && pnpm --filter @juru/api build
-    startCommand: pnpm --filter @juru/db exec prisma migrate deploy && node apps/api/dist/index.js
+    buildCommand: >-
+      npm install -g pnpm &&
+      pnpm install --frozen-lockfile &&
+      pnpm --filter @juru/db exec prisma generate &&
+      pnpm --filter @juru/api build
+    startCommand: >-
+      pnpm --filter @juru/db exec prisma db push --accept-data-loss &&
+      pnpm --filter @juru/db seed &&
+      node apps/api/dist/index.js
     healthCheckPath: /api/v1/health
     envVars:
       - key: NODE_ENV
         value: production
-      - key: PORT
-        value: 3001
       - key: DATABASE_URL
         fromDatabase:
           name: juru-db
           property: connectionString
       - key: REDIS_URL
-        sync: false
+        fromService:
+          name: juru-redis
+          type: redis
+          property: connectionString
       - key: JWT_SECRET
+        generateValue: true
+      - key: JWT_REFRESH_SECRET
         generateValue: true
       - key: FRONTEND_URL
         sync: false
+      - key: ALLOWED_DOMAIN
+        value: juru.org
+      - key: GOOGLE_CLIENT_ID
+        sync: false
+      - key: GOOGLE_CLIENT_SECRET
+        sync: false
+      - key: GOOGLE_CALLBACK_URL
+        sync: false
+      - key: SMTP_HOST
+        sync: false
+      - key: SMTP_PORT
+        value: "587"
+      - key: SMTP_USER
+        sync: false
+      - key: SMTP_PASS
+        sync: false
+      - key: EMAIL_FROM
+        value: "Juru HR <noreply@juru.org>"
 
+  # ── Web ──────────────────────────────────────────────────────────────────────
   - type: web
     name: juru-web
     runtime: node
     rootDir: .
-    buildCommand: npm install -g pnpm && pnpm install --frozen-lockfile && pnpm --filter @juru/web build
+    buildCommand: >-
+      npm install -g pnpm &&
+      pnpm install --frozen-lockfile &&
+      pnpm --filter @juru/web build
     startCommand: pnpm --filter @juru/web start
     envVars:
       - key: NEXT_PUBLIC_API_URL
         sync: false
 
+  # ── Redis ─────────────────────────────────────────────────────────────────────
+  - type: redis
+    name: juru-redis
+    plan: free
+    ipAllowList: []
+
+# ── Postgres ──────────────────────────────────────────────────────────────────
 databases:
   - name: juru-db
     databaseName: juru_perf

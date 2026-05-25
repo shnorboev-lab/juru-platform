@@ -5,6 +5,7 @@ import { api } from '@/lib/api'
 import { getMe, type Me } from '@/lib/auth'
 import { Shell } from '@/components/Shell'
 import { Card } from '@/components/ui/Card'
+import Link from 'next/link'
 
 type SubmissionStatus = { self?: string; eval1?: string; eval2?: string }
 type StaffRow = {
@@ -155,13 +156,16 @@ export default function StaffProgressPage() {
                                    emp.submissions.eval2 === 'SUBMITTED'
                     return (
                       <tr key={emp.id}
-                        className={`border-b border-gray-50 hover:bg-gray-50 transition-colors ${i % 2 === 0 ? '' : 'bg-gray-50/40'}`}>
+                        className={`border-b border-gray-50 hover:bg-[#fdf3f4] transition-colors cursor-pointer ${i % 2 === 0 ? '' : 'bg-gray-50/40'}`}>
                         <td className="px-6 py-3 font-mono text-xs text-gray-400">{emp.juruId ?? '—'}</td>
                         <td className="px-4 py-3">
-                          <div className="flex items-center gap-2">
-                            <span className="font-medium text-gray-900">{emp.fullName}</span>
+                          <Link href={`/interviews/${emp.id}?cycleId=${cycleId}`} className="flex items-center gap-2 group">
+                            <span className="font-medium text-gray-900 group-hover:text-[#C30017]">{emp.fullName}</span>
                             {allDone && <span className="text-xs text-green-600">✓</span>}
-                          </div>
+                            <svg className="w-3 h-3 text-gray-300 group-hover:text-[#C30017] ml-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7"/>
+                            </svg>
+                          </Link>
                         </td>
                         <td className="px-4 py-3 text-gray-500 text-xs max-w-[180px] truncate">{emp.position ?? '—'}</td>
                         <td className="px-4 py-3 text-center">

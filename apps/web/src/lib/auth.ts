@@ -8,8 +8,10 @@ export interface Me {
   email: string
   grade: string
   role: Role
-  team?: { name: string }
-  bu?:   { name: string }
+  teamId?: string
+  buId?:   string
+  team?: { id: string; name: string }
+  bu?:   { id: string; name: string }
 }
 
 export async function getMe(): Promise<Me | null> {
@@ -43,8 +45,9 @@ export function roleLabel(role: Role): string {
 }
 
 export function dashboardPath(role: Role): string {
-  if (role === 'HR_ADMIN') return '/hr'
-  if (role === 'EVALUATOR') return '/evaluator'
-  if (['TEAM_HEAD','BU_HEAD','MD'].includes(role)) return '/analytics'
-  return '/employee'
+  if (role === 'HR_ADMIN')   return '/hr/self-appraisals'
+  if (role === 'EVALUATOR')  return '/evaluator'
+  if (role === 'TEAM_HEAD')  return '/team/self-appraisals'
+  if (['BU_HEAD','MD'].includes(role)) return '/analytics'
+  return '/employee/self-appraisals'
 }

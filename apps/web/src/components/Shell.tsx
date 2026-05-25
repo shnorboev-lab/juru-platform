@@ -2,7 +2,7 @@
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { clsx } from 'clsx'
-import { Bell, LogOut, BarChart2, Users, ClipboardList, Home, FileText, CheckSquare } from 'lucide-react'
+import { Bell, LogOut, Users, ClipboardList, FileText, CheckSquare, MessageSquare, TrendingUp } from 'lucide-react'
 import type { Me } from '@/lib/auth'
 import { logout } from '@/lib/auth'
 import Image from 'next/image'
@@ -12,36 +12,35 @@ interface NavItem { href: string; label: string; icon: React.ReactNode }
 function navItems(role: string): NavItem[] {
   const all: Record<string, NavItem[]> = {
     EMPLOYEE: [
-      { href: '/employee',              label: 'Notifications', icon: <Bell size={16} /> },
-    ],
-    EVALUATOR: [
-      { href: '/evaluator',             label: 'Evaluations',   icon: <CheckSquare size={16} /> },
-      { href: '/notifications',         label: 'Notifications', icon: <Bell size={16} /> },
+      { href: '/employee/self-appraisals',      label: 'Self-Appraisal',      icon: <FileText size={16} /> },
+      { href: '/employee/evaluations',          label: 'My Evaluations',      icon: <CheckSquare size={16} /> },
+      { href: '/employee/given-evaluations',    label: 'Evaluations Given',   icon: <Users size={16} /> },
+      { href: '/employee/interviews',           label: 'Interviews',          icon: <ClipboardList size={16} /> },
+      { href: '/check-ins',                     label: 'Check-ins',           icon: <MessageSquare size={16} /> },
+      { href: '/notifications',                 label: 'Notifications',       icon: <Bell size={16} /> },
     ],
     HR_ADMIN: [
-      { href: '/hr',               label: 'Admin Panel',    icon: <ClipboardList size={16} /> },
-      { href: '/hr/employees',     label: 'Employees',      icon: <Users size={16} /> },
-      { href: '/analytics',        label: 'Analytics',      icon: <BarChart2 size={16} /> },
-      { href: '/analytics/staff',  label: 'Staff Progress', icon: <Users size={16} /> },
-      { href: '/hr/reports',       label: 'Reports',        icon: <FileText size={16} /> },
-      { href: '/notifications',    label: 'Notifications',  icon: <Bell size={16} /> },
+      { href: '/hr/employees',               label: 'Employees',          icon: <Users size={16} /> },
+      { href: '/hr/cycles',                  label: 'Review Cycles',      icon: <ClipboardList size={16} /> },
+      { href: '/hr/self-appraisals',         label: 'Self-Appraisals',    icon: <FileText size={16} /> },
+      { href: '/hr/evaluations',             label: 'Evaluations',        icon: <CheckSquare size={16} /> },
+      { href: '/interviews',                 label: 'Interviews',         icon: <ClipboardList size={16} /> },
+      { href: '/analytics/staff',            label: 'Staff Progress',     icon: <Users size={16} /> },
+      { href: '/analytics/intelligence',     label: 'Perf. Intelligence', icon: <TrendingUp size={16} /> },
+      { href: '/notifications',              label: 'Notifications',      icon: <Bell size={16} /> },
     ],
     TEAM_HEAD: [
-      { href: '/analytics/staff',       label: 'Staff Progress',icon: <Users size={16} /> },
-      { href: '/analytics',             label: 'Analytics',     icon: <BarChart2 size={16} /> },
-      { href: '/analytics/interviews',  label: 'Interviews',    icon: <CheckSquare size={16} /> },
-      { href: '/notifications',         label: 'Notifications', icon: <Bell size={16} /> },
+      { href: '/team/self-appraisals',       label: 'Self-Appraisals',    icon: <FileText size={16} /> },
+      { href: '/team/evaluations',           label: 'Evaluations',        icon: <CheckSquare size={16} /> },
+      { href: '/interviews',                 label: 'Interviews',         icon: <ClipboardList size={16} /> },
+      { href: '/analytics/intelligence',     label: 'Perf. Intelligence', icon: <TrendingUp size={16} /> },
+      { href: '/check-ins',                  label: 'Check-ins',          icon: <MessageSquare size={16} /> },
+      { href: '/notifications',              label: 'Notifications',      icon: <Bell size={16} /> },
     ],
     BU_HEAD: [
-      { href: '/analytics/staff',       label: 'Staff Progress',icon: <Users size={16} /> },
-      { href: '/analytics',             label: 'Analytics',     icon: <BarChart2 size={16} /> },
-      { href: '/hr/reports',            label: 'Reports',       icon: <FileText size={16} /> },
-      { href: '/notifications',         label: 'Notifications', icon: <Bell size={16} /> },
-    ],
-    MD: [
-      { href: '/analytics/staff',       label: 'Staff Progress',icon: <Users size={16} /> },
-      { href: '/analytics',             label: 'Analytics',     icon: <BarChart2 size={16} /> },
-      { href: '/notifications',         label: 'Notifications', icon: <Bell size={16} /> },
+      { href: '/analytics/staff',            label: 'Staff Progress',     icon: <Users size={16} /> },
+      { href: '/analytics/intelligence',     label: 'Perf. Intelligence', icon: <TrendingUp size={16} /> },
+      { href: '/notifications',              label: 'Notifications',      icon: <Bell size={16} /> },
     ],
   }
   return all[role] ?? all['EMPLOYEE']

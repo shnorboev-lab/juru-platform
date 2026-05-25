@@ -115,6 +115,12 @@ enum SubCriterion {
   RELIABILITY
 }
 
+enum CheckInStatus {
+  SCHEDULED
+  DONE
+  CANCELLED
+}
+
 enum NotificationChannel {
   EMAIL
   GCHAT
@@ -188,6 +194,9 @@ model Employee {
   results                 Result[]
   auditLogs               AuditLog[]
   notifications           Notification[]
+  checkInsInitiated       CheckIn[]           @relation("CheckInInitiator")
+  checkInsReceived        CheckIn[]           @relation("CheckInEmployee")
+  checkInAttendances      CheckInAttendee[]   @relation("CheckInAttendances")
 
   @@map("employees")
 }
@@ -281,9 +290,11 @@ model Result {
   isAtRisk         Boolean          @default(false)
   isNominated      Boolean          @default(false)
   belowCount       Int              @default(0)
-  releasedAt       DateTime?
-  interviewNote    String?          @db.Text
-  interviewDoneAt  DateTime?
+  releasedAt           DateTime?
+  interviewScheduledAt DateTime?
+  interviewNote        String?          @db.Text
+  interviewDoneAt      DateTime?
+  buNote               String?          @db.Text
   createdAt        DateTime         @default(now())
   updatedAt        DateTime         @updatedAt
 
@@ -336,6 +347,39 @@ model Notification {
   employee Employee @relation(fields: [employeeId], references: [id])
 
   @@map("notifications")
+}
+
+model CheckIn {
+  id            String        @id @default(uuid())
+  initiatorId   String
+  employeeId    String
+  scheduledAt   DateTime?
+  agenda        String?       @db.Text
+  notes         String?       @db.Text
+  employeeNotes String?       @db.Text
+  status        CheckInStatus @default(SCHEDULED)
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+
+  initiator  Employee          @relation("CheckInInitiator", fields: [initiatorId], references: [id])
+  employee   Employee          @relation("CheckInEmployee",  fields: [employeeId],  references: [id])
+  attendees  CheckInAttendee[]
+
+  @@map("check_ins")
+}
+
+model CheckInAttendee {
+  id         String   @id @default(uuid())
+  checkInId  String
+  employeeId String
+  notes      String?  @db.Text
+  createdAt  DateTime @default(now())
+
+  checkIn  CheckIn  @relation(fields: [checkInId], references: [id], onDelete: Cascade)
+  employee Employee @relation("CheckInAttendances", fields: [employeeId], references: [id])
+
+  @@unique([checkInId, employeeId])
+  @@map("check_in_attendees")
 }
 
 model AuditLog {

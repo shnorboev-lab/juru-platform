@@ -22,16 +22,21 @@ const GRADES = [
   'D1','D2','D3','MD','I',
 ]
 
-const ROLES = ['EMPLOYEE','EVALUATOR','TEAM_HEAD','BU_HEAD','MD','HR_ADMIN']
+const ROLES = ['EMPLOYEE', 'TEAM_HEAD', 'BU_HEAD', 'HR_ADMIN']
 const OFFICES = ['London','Tashkent','Remote','Other']
 
 const ROLE_COLOR: Record<string, string> = {
   HR_ADMIN:  'bg-purple-100 text-purple-800',
-  EVALUATOR: 'bg-amber-100 text-amber-700',
   TEAM_HEAD: 'bg-green-100 text-green-700',
   BU_HEAD:   'bg-orange-100 text-orange-700',
-  MD:        'bg-red-100 text-red-700',
   EMPLOYEE:  'bg-blue-100 text-blue-700',
+}
+
+const ROLE_LABEL: Record<string, string> = {
+  EMPLOYEE:  'Employee',
+  TEAM_HEAD: 'Team Head',
+  BU_HEAD:   'BU Head',
+  HR_ADMIN:  'HR Admin',
 }
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -147,7 +152,7 @@ export default function HREmployees() {
           <div>
             <h1 className="text-2xl font-bold text-gray-900">Employees</h1>
             <p className="text-sm text-gray-500 mt-1">
-              {employees?.length ?? 0} active staff · click Grade, Team, Office or Role to edit inline
+              {employees?.length ?? 0} active staff · click Grade, Team, Office or Access Level to edit inline
             </p>
           </div>
           <div className="flex gap-2">
@@ -218,7 +223,7 @@ export default function HREmployees() {
                       <th className="px-4 py-2 text-left font-medium">Team</th>
                       <th className="px-4 py-2 text-center font-medium">Grade</th>
                       <th className="px-4 py-2 text-left font-medium">Office</th>
-                      <th className="px-4 py-2 text-center font-medium">Role</th>
+                      <th className="px-4 py-2 text-center font-medium">Access Level</th>
                       <th className="px-4 py-2 text-center font-medium">Actions</th>
                     </tr>
                   </thead>
@@ -271,13 +276,13 @@ export default function HREmployees() {
                           />
                         </td>
 
-                        {/* Role — dropdown */}
+                        {/* Access Level — dropdown */}
                         <td className="px-4 py-2 text-center">
                           <SelectCell
-                            value={emp.role}
+                            value={ROLES.includes(emp.role) ? emp.role : 'EMPLOYEE'}
                             options={ROLES}
                             onSave={role => patch(emp.id, { role })}
-                            displayFn={v => v.replace(/_/g, ' ')}
+                            displayFn={v => ROLE_LABEL[v] ?? v.replace(/_/g, ' ')}
                             colorFn={v => ROLE_COLOR[v] ?? 'bg-gray-100 text-gray-700'}
                           />
                         </td>

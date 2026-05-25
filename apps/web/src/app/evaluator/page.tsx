@@ -325,12 +325,13 @@ type EmployeeRef = {
 }
 
 function EvalForm({
-  cycleId, employee, evalType, onDone,
+  cycleId, employee, evalType, onDone, cycleLocked,
 }: {
   cycleId: string
   employee: EmployeeRef
   evalType: 'EVAL_1' | 'EVAL_2'
   onDone: () => void
+  cycleLocked?: boolean
 }) {
   const qc = useQueryClient()
   const seniority = getSeniority(employee.grade)
@@ -367,10 +368,12 @@ function EvalForm({
   const filledCount = Object.values(scores).filter(Boolean).length
   const groups = [...new Set(SUB_CRITERIA.map(s => s.group))]
 
-  if (sub?.status === 'SUBMITTED') {
+  if (sub?.status === 'SUBMITTED' || cycleLocked) {
     return (
-      <div className="rounded-xl bg-green-50 border border-green-200 px-5 py-4 text-sm text-green-800 font-medium">
-        ✓ Evaluation submitted for {employee.fullName}
+      <div className={`rounded-xl px-5 py-4 text-sm font-medium ${sub?.status === 'SUBMITTED' ? 'bg-green-50 border border-green-200 text-green-800' : 'bg-gray-50 border border-gray-200 text-gray-600'}`}>
+        {sub?.status === 'SUBMITTED'
+          ? `✓ Evaluation submitted for ${employee.fullName}`
+          : `🔒 This cycle is closed — evaluation for ${employee.fullName} can no longer be edited.`}
       </div>
     )
   }
@@ -565,6 +568,7 @@ export default function EvaluatorPage() {
               employee={selEmp.employee}
               evalType={selected.evalType}
               onDone={() => setSelected(null)}
+              cycleLocked={!['EVALUATION','CONSOLIDATION'].includes(activeCycle.phase)}
             />
           </div>
         )}
